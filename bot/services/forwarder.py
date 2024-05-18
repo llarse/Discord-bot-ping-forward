@@ -1,4 +1,5 @@
 import json
+import discord
 
 def load_forwards():
     try:
@@ -30,4 +31,18 @@ def add_dm_forward(forward_from: str, dm_id: str):
 
     forwards[forward_from] = config
     save_forwards(forwards)
-    return config   
+    return config
+
+async def send_forward(bot, message, config):
+    ids_to_dm = config["forwardToIDs"]
+    for user_id in ids_to_dm:
+        try:
+            user = await bot.fetch_user(user_id)
+            dm_channel = await user.create_dm()
+            # For now, return message will just be message content to confirm bots functionallity
+            return_message = message.content
+            await dm_channel.send(return_message)
+        except discord.errors.NotFound:
+            await message.channel.send(f'Could not forward a DM for {message.author.name} because the user to DM was not found')
+        except discord.errors.Forbidden:
+            await message.channel.send(f'Could not forward a DM for {message.author.name} because the user to DM was not able to receive a DM from the bot')

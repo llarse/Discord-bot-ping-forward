@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import discord
 from discord.ext import commands
 
-from services.forwarder import add_dm_forward, load_forwards
+from services.forwarder import add_dm_forward, load_forwards, send_forward
 
 load_dotenv()
 
@@ -39,5 +39,17 @@ async def add_forward(ctx, dm_id=None):
     forwards[ctx.author.id] = config
     forward_ids.add(ctx.author.id)
     await ctx.send(f'Added forward for {ctx.author.name} to {dm_id}')
+
+# Listen for Pings
+@bot.event
+async def on_message(message):
+    # Ignore bot
+    if message.author == bot.user:
+        return
+    
+    for mention in message.mentions:
+        if str(mention.id) in forward_ids:
+            config = forwards[str(mention.id)]
+            await send_forward(bot, message, config)
 
 bot.run(BOT_TOKEN)
