@@ -4,6 +4,7 @@ import discord
 from discord.ext import commands
 
 from services.forwarder import add_dm_forward, load_forwards, send_forward
+from services.reactions import add_checkmark
 
 load_dotenv()
 
@@ -47,9 +48,16 @@ async def on_message(message):
     if message.author == bot.user:
         return
     
+    found = False
     for mention in message.mentions:
         if str(mention.id) in forward_ids:
+            found = True
             config = forwards[str(mention.id)]
             await send_forward(bot, message, config)
+    
+    # Add a checkmark once complete
+    if found:
+        await add_checkmark(message)
+
 
 bot.run(BOT_TOKEN)
