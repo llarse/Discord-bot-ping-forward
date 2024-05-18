@@ -45,13 +45,29 @@ async def send_forward(bot, message, config):
     ''' Initiate forwarding - Currently only forwards to dms'''
     ids_to_dm = config["forwardToIDs"]
     for user_id in ids_to_dm:
-        try:
-            # TODO: This shouldnt all be in the try catch
-            user = await bot.fetch_user(user_id)
-            dm_channel = await user.create_dm()
-            return_message = format_message(message)
-            await dm_channel.send(return_message)
-        except discord.errors.NotFound:
-            await message.channel.send(f'Could not forward a DM for {message.author.name} because the user to DM was not found')
-        except discord.errors.Forbidden:
-            await message.channel.send(f'Could not forward a DM for {message.author.name} because the user to DM was not able to receive a DM from the bot')
+        await forward_dm(bot, message, user_id)
+    
+async def forward_dm(bot, message, user_id):
+    """Forwards the given message to the user specified by user_id via DM."""
+
+    try:
+        user = await bot.fetch_user(user_id)
+    except (discord.errors.NotFound, discord.HTTPException, discord.errors.Forbidden) as e:
+        # User not found or other HTTP errors during fetching
+        await message.channel.send(f"An error occurred while fetching the user for DM: {e}")
+        return
+
+    try:
+        dm_channel = await user.create_dm()
+    except (discord.HTTPException, discord.errors.Forbidden) as e:
+        # Error creating DM channel (e.g., bot cannot DM user)
+        await message.channel.send(f"Could not forward a DM for {message.author.name} because: {e}")
+        return
+
+    try:
+        return_message = format_message(message)
+        await dm_channel.send(return_message)
+    except (discord.HTTPException, discord.errors.Forbidden) as e:
+        # Error sending the DM (e.g., rate limiting)
+        await message.channel.send(f"An error occurred while sending the DM for {message.author.name}: {e}")
+
