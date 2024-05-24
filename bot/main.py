@@ -4,7 +4,7 @@ import discord
 from discord.ext import commands
 
 from services.forwarder import add_dm_forward, load_forwards, send_forward
-from services.reactions import add_checkmark
+from services.reactions import add_reaction_emoji
 
 load_dotenv()
 
