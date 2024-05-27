@@ -57,7 +57,7 @@ async def on_message(message):
     
     # Add a checkmark once complete
     if found:
-        await add_checkmark(message)
+        await add_reaction_emoji(message)
 
 
 bot.run(BOT_TOKEN)
