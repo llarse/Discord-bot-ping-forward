@@ -71,3 +71,51 @@ async def forward_dm(bot, message, user_id):
         # Error sending the DM (e.g., rate limiting)
         await message.channel.send(f"An error occurred while sending the DM for {message.author.name}: {e}")
 
+async def handle_dm_reply(bot, message):
+    if message.reference and message.reference.message_id:
+        # Fetch the original forwarded message
+        try:
+            original_forwarded_message = await message.channel.fetch_message(message.reference.message_id)
+        except discord.NotFound:
+            print("Original forwarded message not found")
+            return
+        
+        # Extract the original message URL from the content of the original forwarded message
+        original_message_url = None
+        for line in original_forwarded_message.content.split("\n"):
+            if line.startswith("[Jump to message]("):
+                original_message_url = line.split("[Jump to message](")[1].split(")")[0].strip()
+                break
+        
+        if not original_message_url:
+            print("Original message URL not found in the forwarded message")
+            return
+        
+        # Extract guild ID, channel ID, and message ID from the URL
+        parts = original_message_url.split('/')
+        guild_id = int(parts[4])
+        channel_id = int(parts[5])
+        message_id = int(parts[6])
+        
+        # Fetch the original message
+        guild = bot.get_guild(guild_id)
+        if not guild:
+            print(f"Guild with ID {guild_id} not found")
+            return
+        
+        channel = guild.get_channel(channel_id)
+        if not channel:
+            print(f"Channel with ID {channel_id} not found in guild {guild_id}")
+            return
+        
+        try:
+            original_message = await channel.fetch_message(message_id)
+        except discord.NotFound:
+            print(f"Original message with ID {message_id} not found in channel {channel_id}")
+            return
+        
+        # Send the reply to the original channel
+        reply_content = (
+            f"**Reply**:\n{message.content}\n\n"
+        )
+        await original_message.reply(reply_content)
