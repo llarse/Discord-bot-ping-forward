@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import discord
 from discord.ext import commands
 
-from services.forwarder import add_dm_forward, load_forwards, send_forward
+from services.forwarder import add_dm_forward, load_forwards, send_forward, handle_dm_reply
 from services.reactions import add_reaction_emoji
 
 load_dotenv()
@@ -48,15 +48,23 @@ async def on_message(message):
     if message.author == bot.user:
         return
     
-    found = False
-    for mention in message.mentions:
-        if str(mention.id) in forward_ids:
-            found = True
-            config = forwards[str(mention.id)]
-            await send_forward(bot, message, config)
+    # Add a reaction emoji to the message later if an action is performed
+    performed_action = False
+
+    # Check for dm replies
+    if isinstance(message.channel, discord.DMChannel) and message.reference:
+        await handle_dm_reply(bot, message)
+        return
+    else:
+        for mention in message.mentions:
+            mention_id_str = str(mention.id)
+            if mention_id_str in forward_ids:
+                performed_action = True
+                config = forwards[mention_id_str]
+                await send_forward(bot, message, config)
     
     # Add a checkmark once complete
-    if found:
+    if performed_action:
         await add_reaction_emoji(message)
 
 
